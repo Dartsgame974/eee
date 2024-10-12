@@ -1,5 +1,4 @@
 -- Modules nécessaires
-local http = require("http")
 local json = require("json")
 local aukit = require("aukit")
 local term = require("term")
