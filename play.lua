@@ -87,7 +87,7 @@ local function navigatePlaylist(playlist)
 end
 
 -- URL du fichier JSON de la playlist sur GitHub
-local playlistUrl = "https://raw.githubusercontent.com/yourusername/yourrepo/yourbranch/playlist.json"
+local playlistUrl = "https://raw.githubusercontent.com/Dartsgame974/eee/refs/heads/main/playlist.json"
 
 -- Récupération et navigation dans la playlist
 local playlist = fetchPlaylist(playlistUrl)
