@@ -76,7 +76,7 @@ local function displayStorage()
 
     -- Get fluid storage information
     local totalFluidStorage = rsBridge.getMaxFluidDiskStorage()
-    local usedFluidStorage = 0 -- FIXED typo here
+    local usedFluidStorage = 0
     for _, fluid in pairs(rsBridge.listFluids()) do
         usedFluidStorage = usedFluidStorage + fluid.amount
     end
@@ -117,9 +117,9 @@ local function displayStorage()
 
         -- Once space is freed, stop the signature sound and reset
         monitor.clear()
-        displayStorage() -- Call displayStorage again to reset the state
+        displayStorage()
     end
-end
+end -- <-- Properly close the `displayStorage` function here.
 
 -- Main loop to update the display every 5 seconds
 while true do
