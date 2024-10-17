@@ -73,7 +73,7 @@ local function displayStorageUsage(monitorLeft, monitorRight)
     drawVerticalBar(monitorLeft, usedItemStorage, totalItemStorage, widthLeft / 2, heightLeft, colors.green, 2)
     
     -- Draw the blue vertical progress bar for fluid storage
-    drawVerticalBar(monitorRight, usedFluidStorage, totalFluidStorage, widthRight // 2, heightRight, colors.blue, 2)
+    drawVerticalBar(monitorRight, usedFluidStorage, totalFluidStorage, widthRight / 2, heightRight, colors.blue, 2)
 end
 
 -- Function to display alert messages on monitorAlert
