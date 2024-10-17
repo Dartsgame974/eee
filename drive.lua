@@ -69,7 +69,7 @@ local function displayWarning()
         monitor.clear()
         monitor.setTextColor(colors.red)
         mf.writeOn(monitor, "STOCKAGE COMPLET!!!!", nil, math.floor(h / 2), {
-            font = "fonts/PublicPixel", -- Choose a bold font
+            font = "fonts/Dogica_Bold", -- Choose a bold font
             scale = 0.5, -- Set scale to 0.5
             anchorHor = "center",
         })
@@ -89,7 +89,7 @@ local function displayWarning()
         monitor.clear()
         monitor.setTextColor(colors.red)
         mf.writeOn(monitor, "STOCKAGE COMPLET!!!!", nil, math.floor(h / 2), {
-            font = "fonts/PublicPixel",
+            font = "fonts/Dogica_Bold",
             scale = 0.5,
             anchorHor = "center",
         })
