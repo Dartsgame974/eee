@@ -3,7 +3,7 @@ local monitor = peripheral.find("monitor") -- Assuming you have a monitor connec
 local rsBridge = peripheral.find("rsBridge") -- Assuming RS Bridge is correctly connected
 
 -- Set monitor scale and clear
-monitor.setTextScale(1)
+monitor.setTextScale(1.5)
 monitor.clear()
 
 -- Format large numbers into K (thousand), M (million), etc.
@@ -17,12 +17,28 @@ local function formatNumber(num)
     end
 end
 
--- Function to draw a progress bar
-local function drawProgressBar(used, total, length)
+-- Function to center text on the monitor
+local function centerText(text, y)
+    local w, h = monitor.getSize()
+    local x = math.floor((w - #text) / 2)
+    monitor.setCursorPos(x, y)
+    monitor.write(text)
+end
+
+-- Function to draw a stylized progress bar with rounded edges
+local function drawProgressBar(used, total, width)
     local ratio = used / total
-    local filledLength = math.floor(ratio * length)
-    local bar = string.rep("=", filledLength) .. string.rep("-", length - filledLength)
-    return bar
+    local filledLength = math.floor(ratio * width)
+
+    -- Draw the bar
+    monitor.setTextColor(colors.lightGray)
+    monitor.write("[")
+    monitor.setTextColor(colors.green)
+    monitor.write(string.rep("=", filledLength))
+    monitor.setTextColor(colors.gray)
+    monitor.write(string.rep("-", width - filledLength))
+    monitor.setTextColor(colors.lightGray)
+    monitor.write("]")
 end
 
 -- Main function to display storage information
@@ -30,50 +46,57 @@ local function displayStorage()
     local totalStorage = rsBridge.getMaxItemDiskStorage()
     local usedStorage = 0
 
+    -- Calculate used storage
     for _, item in pairs(rsBridge.listItems()) do
         usedStorage = usedStorage + item.amount
     end
 
     local freeStorage = totalStorage - usedStorage
 
-    -- Clear the monitor and set the title
+    -- Clear the monitor
     monitor.clear()
-    monitor.setCursorPos(1, 1)
+
+    -- Display centered title
     monitor.setTextColor(colors.blue)
-    monitor.setBackgroundColor(colors.black)
-    monitor.setTextScale(1)
-    monitor.write("Google Drive")
+    centerText("Google Drive", 1)
 
-    -- Draw the progress bar
+    -- Draw the progress bar centered
+    local w, h = monitor.getSize()
     monitor.setCursorPos(1, 3)
-    local bar = drawProgressBar(usedStorage, totalStorage, 20)
-    monitor.setTextColor(colors.green)
-    monitor.write(bar)
+    centerText("[", 3) -- Left side of the bar
+    monitor.setCursorPos(w-1, 3) -- Position the right side
+    monitor.write("]") -- Right side of the bar
 
-    -- Display the shortened storage numbers
+    monitor.setCursorPos(2, 3)
+    drawProgressBar(usedStorage, totalStorage, w - 2)
+
+    -- Display the shortened storage numbers below the bar
+    local storageText = formatNumber(usedStorage) .. " / " .. formatNumber(totalStorage)
     monitor.setCursorPos(1, 5)
     monitor.setTextColor(colors.green)
-    monitor.write(formatNumber(usedStorage) .. "/" .. formatNumber(totalStorage))
+    centerText(storageText, 5)
 
-    -- Display free storage
-    monitor.setCursorPos(1, 7)
+    -- Display the free space centered
+    local freeText = "Free: " .. formatNumber(freeStorage)
     monitor.setTextColor(colors.lightGray)
-    monitor.write("Free: " .. formatNumber(freeStorage))
+    centerText(freeText, 7)
 
     -- Check if storage is full and display warning
     if usedStorage >= totalStorage then
         monitor.clear()
-        monitor.setTextColor(colors.red)
         local flicker = true
         while usedStorage >= totalStorage do
-            monitor.setCursorPos(1, 5)
+            monitor.setCursorPos(1, h / 2)
             if flicker then
-                monitor.write("STOCKAGE COMPLET!!!!")
+                monitor.setTextColor(colors.red)
+                centerText("STOCKAGE COMPLET!!!!", h // 2)
             else
                 monitor.clearLine()
             end
             flicker = not flicker
             sleep(0.5)
+            
+            -- Update storage status to break out of the loop if space is freed
             usedStorage = 0
             for _, item in pairs(rsBridge.listItems()) do
                 usedStorage = usedStorage + item.amount
