@@ -24,47 +24,51 @@ end
 
 -- Function to draw a progress bar using colored squares
 local function drawProgressBar(used, total, width, yPos)
+    local freeSpace = total - used
     local ratio = used / total
     local filledLength = math.floor(ratio * width)
 
-    -- Draw the progress bar with colored squares
+    -- Determine the color based on free space
+    if freeSpace < 2000000 then
+        monitor.setBackgroundColor(colors.orange) -- Orange for less than 2M free space
+    else
+        monitor.setBackgroundColor(colors.green) -- Green for normal levels
+    end
+
+    -- Draw the progress bar
     monitor.setCursorPos(1, yPos)
-    
     for i = 1, width do
         if i <= filledLength then
-            -- Green for the used storage
-            monitor.setBackgroundColor(colors.green)
+            monitor.write(" ") -- Draws a colored "square"
         else
-            -- Gray for the free storage
-            monitor.setBackgroundColor(colors.gray)
+            monitor.setBackgroundColor(colors.gray) -- Gray for remaining free space
+            monitor.write(" ")
         end
-        monitor.write(" ") -- Draws a colored "square"
     end
     
-    -- Reset the background color
+    -- Reset background color
     monitor.setBackgroundColor(colors.black)
 end
 
--- Function to display the stockage complet warning (with sound for 30 seconds)
-local function displayWarning()
+-- Function to display the "STOCKAGE COMPLET" or "FLUID COMPLET" message
+local function displayWarning(message)
     local w, h = monitor.getSize()
 
     -- Start the warning sound for 30 seconds
     local soundStartTime = os.clock()
-
-    -- Display flickering text for 30 seconds, sound stops but text remains
     local flickerStartTime = os.clock()
+
     while os.clock() - flickerStartTime <= 30 do
-        -- Flickering "STOCKAGE COMPLET!!!!"
+        -- Flicker the warning message
         monitor.clear()
         monitor.setTextColor(colors.red)
-        mf.writeOn(monitor, "STOCKAGE COMPLET!!!!", nil, math.floor(h / 2), {
-            font = "fonts/Dogica-Bold", -- Choose a bold font
-            scale = 1, -- Set scale to 0.5
+        mf.writeOn(monitor, message, nil, math.floor(h / 2), {
+            font = "fonts/PublicPixel",
+            scale = 0.5,
             anchorHor = "center",
         })
 
-        sleep(0.5) -- Flicker every half second
+        sleep(0.5)
         monitor.clear()
         sleep(0.5)
 
@@ -73,20 +77,17 @@ local function displayWarning()
             aukit.play(aukit.stream.wav(io.lines("alert.wav", 48000)), speaker)
         end
     end
+end
 
-    -- Continue to display the warning after 30 seconds without the sound
-    while true do
-        monitor.clear()
-        monitor.setTextColor(colors.red)
-        mf.writeOn(monitor, "STOCKAGE COMPLET!!!!", nil, math.floor(h / 2), {
-            font = "fonts/PublicPixel",
-            scale = 0.5,
-            anchorHor = "center",
-        })
-        sleep(0.5)
-        monitor.clear()
-        sleep(0.5)
-    end
+-- Function to display the total combined storage of both items and fluids
+local function displayTotalUsage(itemStorageUsed, itemStorageTotal, fluidStorageUsed, fluidStorageTotal)
+    local totalUsed = itemStorageUsed + fluidStorageUsed
+    local totalCapacity = itemStorageTotal + fluidStorageTotal
+
+    local totalText = "Total: " .. formatNumber(totalUsed) .. " / " .. formatNumber(totalCapacity)
+    monitor.setCursorPos(1, 9)
+    monitor.setTextColor(colors.yellow)
+    monitor.write(totalText)
 end
 
 -- Main function to display storage information
@@ -133,10 +134,21 @@ local function displayStorage()
     monitor.setTextColor(colors.cyan)
     monitor.write(fluidStorageText)
 
-    -- Check if free storage is less than 10,000 for items or fluids
-    if freeItemStorage <= 10000 or freeFluidStorage <= 10000 then
-        displayWarning()
-        displayStorage() -- Re-display storage info when space is freed
+    -- Check if either storage type is nearly full
+    if freeItemStorage <= 10000 then
+        while freeItemStorage <= 10000 do
+            monitor.clear()
+            displayWarning("STOCKAGE COMPLET!!!!")
+            displayTotalUsage(usedItemStorage, totalItemStorage, usedFluidStorage, totalFluidStorage)
+            sleep(1)
+        end
+    elseif freeFluidStorage <= 10000 then
+        while freeFluidStorage <= 10000 do
+            monitor.clear()
+            displayWarning("FLUID COMPLET!!!!")
+            displayTotalUsage(usedItemStorage, totalItemStorage, usedFluidStorage, totalFluidStorage)
+            sleep(1)
+        end
     end
 end
 
