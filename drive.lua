@@ -24,9 +24,9 @@ end
 
 -- Function to display "Fluid COMPLET" or "Stockage COMPLET" and the storage values
 local function displayMessage(message, valueUsed, valueTotal, color)
-    monitor.clear()
+    monitor.clear() -- Clear the screen once before showing messages
     monitor.setTextColor(color)
-    
+
     -- Display the message
     mf.writeOn(monitor, message, nil, 5, {
         font = "fonts/PublicPixel",
@@ -34,26 +34,25 @@ local function displayMessage(message, valueUsed, valueTotal, color)
         anchorHor = "center",
     })
     
-    sleep(1.5) -- Hold the message for 1.5 seconds
-    monitor.clear()
-
+    sleep(2) -- Hold the message for 2 seconds
+    
     -- Display storage values
     local storageText = formatNumber(valueUsed) .. " / " .. formatNumber(valueTotal)
-    mf.writeOn(monitor, storageText, nil, 5, {
+    monitor.setCursorPos(1, 7)  -- Ensure this displays in a new line
+    mf.writeOn(monitor, storageText, nil, 7, {
         font = "fonts/PublicPixel",
         scale = 0.5,
         anchorHor = "center",
     })
-    sleep(1.5) -- Hold the storage value for 1.5 seconds
-
-    monitor.clear()
+    
+    sleep(2) -- Hold the storage value for 2 seconds
 end
 
 -- Function to play the alert sound 3 times
 local function playAlert()
     for i = 1, 3 do
         aukit.play(aukit.stream.wav(io.lines("alert.wav", 48000)), speaker)
-        sleep(1) -- Pause between plays
+        sleep(2) -- Pause between plays to ensure it's audible
     end
 end
 
@@ -61,7 +60,7 @@ end
 local function playSignatureLoop()
     while true do
         aukit.play(aukit.stream.wav(io.lines("signature.wav", 48000)), speaker)
-        sleep(1) -- Repeat after 1-second pause
+        sleep(1) -- Repeat after a 1-second pause
     end
 end
 
@@ -88,6 +87,7 @@ local function displayStorage()
         -- Play alert 3 times, then loop the signature sound
         playAlert()
         
+        -- Display full storage messages in a loop until space is freed
         while freeItemStorage <= 10000 or freeFluidStorage <= 10000 do
             -- Display "Fluid COMPLET" message if fluid storage is full
             if freeFluidStorage <= 10000 then
