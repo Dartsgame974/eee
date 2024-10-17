@@ -6,7 +6,7 @@ local mf = require("morefonts") -- Load More Fonts library
 -- Find monitors automatically
 local monitorLeft = peripheral.find("monitor") -- Automatically find the left monitor
 local monitorRight = peripheral.find("monitor") -- Automatically find the right monitor
-local monitorAlert = peripheral.find("monitor_0") -- Automatically find the central monitor for alerts
+local monitorAlert = peripheral.find("monitor") -- Automatically find the central monitor for alerts
 
 -- Ensure all monitors were found, else display an error
 if not monitorLeft or not monitorRight or not monitorAlert then
@@ -18,6 +18,15 @@ end
 monitorLeft.setTextScale(1)
 monitorRight.setTextScale(1)
 monitorAlert.setTextScale(1)
+
+-- Find RS Bridge peripheral
+local rsBridge = peripheral.find("rsBridge")
+
+-- Handle RS Bridge not found
+if not rsBridge then
+    print("Error: RS Bridge peripheral not found!")
+    return
+end
 
 -- Function to format numbers into K (thousand), M (million), etc.
 local function formatNumber(num)
