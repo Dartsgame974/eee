@@ -22,75 +22,50 @@ local function formatNumber(num)
     end
 end
 
--- Function to draw a progress bar using colored squares
-local function drawProgressBar(used, total, width, yPos)
-    local freeSpace = total - used
-    local ratio = used / total
-    local filledLength = math.floor(ratio * width)
-
-    -- Determine the color based on free space
-    if freeSpace < 2000000 then
-        monitor.setBackgroundColor(colors.orange) -- Orange for less than 2M free space
-    else
-        monitor.setBackgroundColor(colors.green) -- Green for normal levels
-    end
-
-    -- Draw the progress bar
-    monitor.setCursorPos(1, yPos)
-    for i = 1, width do
-        if i <= filledLength then
-            monitor.write(" ") -- Draws a colored "square"
-        else
-            monitor.setBackgroundColor(colors.gray) -- Gray for remaining free space
-            monitor.write(" ")
-        end
-    end
+-- Function to display "Fluid COMPLET" or "Stockage COMPLET" and the storage values
+local function displayMessage(message, valueUsed, valueTotal, color)
+    monitor.clear()
+    monitor.setTextColor(color)
     
-    -- Reset background color
-    monitor.setBackgroundColor(colors.black)
+    -- Display the message
+    mf.writeOn(monitor, message, nil, 5, {
+        font = "fonts/PublicPixel",
+        scale = 0.5,
+        anchorHor = "center",
+    })
+    
+    sleep(1.5) -- Hold the message for 1.5 seconds
+    monitor.clear()
+
+    -- Display storage values
+    local storageText = formatNumber(valueUsed) .. " / " .. formatNumber(valueTotal)
+    mf.writeOn(monitor, storageText, nil, 5, {
+        font = "fonts/PublicPixel",
+        scale = 0.5,
+        anchorHor = "center",
+    })
+    sleep(1.5) -- Hold the storage value for 1.5 seconds
+
+    monitor.clear()
 end
 
--- Function to display the "STOCKAGE COMPLET" or "FLUID COMPLET" message
-local function displayWarning(message)
-    local w, h = monitor.getSize()
-
-    -- Start the warning sound for 30 seconds
-    local soundStartTime = os.clock()
-    local flickerStartTime = os.clock()
-
-    while os.clock() - flickerStartTime <= 30 do
-        -- Flicker the warning message
-        monitor.clear()
-        monitor.setTextColor(colors.red)
-        mf.writeOn(monitor, message, nil, math.floor(h / 2), {
-            font = "fonts/PublicPixel",
-            scale = 0.5,
-            anchorHor = "center",
-        })
-
-        sleep(0.5)
-        monitor.clear()
-        sleep(0.5)
-
-        -- Play alert.wav for the first 30 seconds
-        if os.clock() - soundStartTime <= 30 then
-            aukit.play(aukit.stream.wav(io.lines("alert.wav", 48000)), speaker)
-        end
+-- Function to play the alert sound 3 times
+local function playAlert()
+    for i = 1, 3 do
+        aukit.play(aukit.stream.wav(io.lines("alert.wav", 48000)), speaker)
+        sleep(1) -- Pause between plays
     end
 end
 
--- Function to display the total combined storage of both items and fluids
-local function displayTotalUsage(itemStorageUsed, itemStorageTotal, fluidStorageUsed, fluidStorageTotal)
-    local totalUsed = itemStorageUsed + fluidStorageUsed
-    local totalCapacity = itemStorageTotal + fluidStorageTotal
-
-    local totalText = "Total: " .. formatNumber(totalUsed) .. " / " .. formatNumber(totalCapacity)
-    monitor.setCursorPos(1, 9)
-    monitor.setTextColor(colors.yellow)
-    monitor.write(totalText)
+-- Function to loop the signature sound
+local function playSignatureLoop()
+    while true do
+        aukit.play(aukit.stream.wav(io.lines("signature.wav", 48000)), speaker)
+        sleep(1) -- Repeat after 1-second pause
+    end
 end
 
--- Main function to display storage information
+-- Main function to display storage information and handle full storage conditions
 local function displayStorage()
     -- Get item storage information
     local totalItemStorage = rsBridge.getMaxItemDiskStorage()
@@ -108,51 +83,48 @@ local function displayStorage()
     end
     local freeFluidStorage = totalFluidStorage - usedFluidStorage
 
-    -- Clear the monitor
-    monitor.clear()
+    -- If either item or fluid storage is full
+    if freeItemStorage <= 10000 or freeFluidStorage <= 10000 then
+        -- Play alert 3 times, then loop the signature sound
+        playAlert()
+        
+        while freeItemStorage <= 10000 or freeFluidStorage <= 10000 do
+            -- Display "Fluid COMPLET" message if fluid storage is full
+            if freeFluidStorage <= 10000 then
+                displayMessage("FLUID COMPLET!!!!", usedFluidStorage, totalFluidStorage, colors.red)
+            end
 
-    -- Display the title
-    monitor.setCursorPos(1, 1)
-    monitor.setTextColor(colors.blue)
-    monitor.write("Google Drive")
+            -- Display "Stockage COMPLET" message if item storage is full
+            if freeItemStorage <= 10000 then
+                displayMessage("STOCKAGE COMPLET!!!!", usedItemStorage, totalItemStorage, colors.red)
+            end
 
-    -- Draw the item progress bar (y-position = 3)
-    drawProgressBar(usedItemStorage, totalItemStorage, monitor.getSize() - 2, 3)
+            -- Play the signature sound in the background
+            playSignatureLoop()
 
-    -- Display the shortened item storage numbers below the item bar
-    local itemStorageText = formatNumber(usedItemStorage) .. " / " .. formatNumber(totalItemStorage)
-    monitor.setCursorPos(1, 5)
-    monitor.setTextColor(colors.green)
-    monitor.write(itemStorageText)
+            -- Update storage values and check if space is freed
+            usedItemStorage = 0
+            for _, item in pairs(rsBridge.listItems()) do
+                usedItemStorage = usedItemStorage + item.amount
+            end
+            freeItemStorage = totalItemStorage - usedItemStorage
 
-    -- Draw the fluid progress bar (y-position = 7)
-    drawProgressBar(usedFluidStorage, totalFluidStorage, monitor.getSize() - 2, 7)
+            usedFluidStorage = 0
+            for _, fluid in pairs(rsBridge.listFluids()) do
+                usedFluidStorage = usedFluidStorage + fluid.amount
+            end
+            freeFluidStorage = totalFluidStorage - usedFluidStorage
 
-    -- Display the shortened fluid storage numbers below the fluid bar
-    local fluidStorageText = formatNumber(usedFluidStorage) .. " / " .. formatNumber(totalFluidStorage)
-    monitor.setCursorPos(1, 9)
-    monitor.setTextColor(colors.cyan)
-    monitor.write(fluidStorageText)
-
-    -- Check if either storage type is nearly full
-    if freeItemStorage <= 10000 then
-        while freeItemStorage <= 10000 do
-            monitor.clear()
-            displayWarning("STOCKAGE COMPLET!!!!")
-            displayTotalUsage(usedItemStorage, totalItemStorage, usedFluidStorage, totalFluidStorage)
             sleep(1)
         end
-    elseif freeFluidStorage <= 10000 then
-        while freeFluidStorage <= 10000 do
-            monitor.clear()
-            displayWarning("FLUID COMPLET!!!!")
-            displayTotalUsage(usedItemStorage, totalItemStorage, usedFluidStorage, totalFluidStorage)
-            sleep(1)
-        end
+
+        -- Once space is freed, stop the signature sound and reset
+        monitor.clear()
+        displayStorage()
     end
 end
 
--- Main loop to update the display
+-- Main loop to update the display every 5 seconds
 while true do
     displayStorage()
     sleep(5) -- Update every 5 seconds
