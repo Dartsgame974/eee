@@ -29,20 +29,27 @@ local function centerText(text, y)
     monitor.write(text)
 end
 
--- Function to draw a stylized progress bar with rounded edges
+-- Function to draw a progress bar using colored squares
 local function drawProgressBar(used, total, width)
     local ratio = used / total
     local filledLength = math.floor(ratio * width)
 
-    -- Draw the bar
-    monitor.setTextColor(colors.lightGray)
-    monitor.write("[")
-    monitor.setTextColor(colors.green)
-    monitor.write(string.rep("=", filledLength))
-    monitor.setTextColor(colors.gray)
-    monitor.write(string.rep("-", width - filledLength))
-    monitor.setTextColor(colors.lightGray)
-    monitor.write("]")
+    -- Draw the progress bar with colored squares
+    monitor.setCursorPos(1, 3)
+    
+    for i = 1, width do
+        if i <= filledLength then
+            -- Green for the used storage
+            monitor.setBackgroundColor(colors.green)
+        else
+            -- Gray for the free storage
+            monitor.setBackgroundColor(colors.gray)
+        end
+        monitor.write(" ") -- Draws a colored "square" (as close as we can get in text)
+    end
+    
+    -- Reset the background color
+    monitor.setBackgroundColor(colors.black)
 end
 
 -- Main function to display storage information
@@ -66,13 +73,7 @@ local function displayStorage()
 
     -- Draw the progress bar centered
     local w, h = monitor.getSize()
-    monitor.setCursorPos(1, 3)
-    centerText("[", 3) -- Left side of the bar
-    monitor.setCursorPos(w-1, 3) -- Position the right side
-    monitor.write("]") -- Right side of the bar
-
-    monitor.setCursorPos(2, 3)
-    drawProgressBar(usedStorage, totalStorage, w - 2)
+    drawProgressBar(usedStorage, totalStorage, w - 2) -- Use most of the width
 
     -- Display the shortened storage numbers below the bar
     local storageText = formatNumber(usedStorage) .. " / " .. formatNumber(totalStorage)
