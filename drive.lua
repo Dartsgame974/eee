@@ -23,12 +23,12 @@ local function formatNumber(num)
 end
 
 -- Function to draw a progress bar using colored squares
-local function drawProgressBar(used, total, width)
+local function drawProgressBar(used, total, width, yPos)
     local ratio = used / total
     local filledLength = math.floor(ratio * width)
 
     -- Draw the progress bar with colored squares
-    monitor.setCursorPos(1, 3)
+    monitor.setCursorPos(1, yPos)
     
     for i = 1, width do
         if i <= filledLength then
@@ -45,16 +45,6 @@ local function drawProgressBar(used, total, width)
     monitor.setBackgroundColor(colors.black)
 end
 
--- Function to display a large centered title using More Fonts (with size 0.5)
-local function displayTitle(text)
-    monitor.setTextColor(colors.blue)
-    mf.writeOn(monitor, text, nil, 1, {
-        font = "fonts/PublicPixel", -- Choose a font here
-        scale = 0.5, -- Set scale to 0.5
-        anchorHor = "center",
-    })
-end
-
 -- Function to display the stockage complet warning (with sound for 30 seconds)
 local function displayWarning()
     local w, h = monitor.getSize()
@@ -69,8 +59,8 @@ local function displayWarning()
         monitor.clear()
         monitor.setTextColor(colors.red)
         mf.writeOn(monitor, "STOCKAGE COMPLET!!!!", nil, math.floor(h / 2), {
-            font = "fonts/Dogica_Bold", -- Choose a bold font
-            scale = 0.5, -- Set scale to 0.5
+            font = "fonts/Dogica-Bold", -- Choose a bold font
+            scale = 1, -- Set scale to 0.5
             anchorHor = "center",
         })
 
@@ -89,7 +79,7 @@ local function displayWarning()
         monitor.clear()
         monitor.setTextColor(colors.red)
         mf.writeOn(monitor, "STOCKAGE COMPLET!!!!", nil, math.floor(h / 2), {
-            font = "fonts/Dogica_Bold",
+            font = "fonts/PublicPixel",
             scale = 0.5,
             anchorHor = "center",
         })
@@ -101,37 +91,50 @@ end
 
 -- Main function to display storage information
 local function displayStorage()
-    local totalStorage = rsBridge.getMaxItemDiskStorage()
-    local usedStorage = 0
-
-    -- Calculate used storage
+    -- Get item storage information
+    local totalItemStorage = rsBridge.getMaxItemDiskStorage()
+    local usedItemStorage = 0
     for _, item in pairs(rsBridge.listItems()) do
-        usedStorage = usedStorage + item.amount
+        usedItemStorage = usedItemStorage + item.amount
     end
+    local freeItemStorage = totalItemStorage - usedItemStorage
 
-    local freeStorage = totalStorage - usedStorage
+    -- Get fluid storage information
+    local totalFluidStorage = rsBridge.getMaxFluidDiskStorage()
+    local usedFluidStorage = 0
+    for _, fluid in pairs(rsBridge.listFluids()) do
+        usedFluidStorage = usedFluidStorage + fluid.amount
+    end
+    local freeFluidStorage = totalFluidStorage - usedFluidStorage
 
-    -- Clear the monitor and display title
+    -- Clear the monitor
     monitor.clear()
-    displayTitle("Google Drive")
 
-    -- Draw the progress bar centered
-    local w, h = monitor.getSize()
-    drawProgressBar(usedStorage, totalStorage, w - 2)
+    -- Display the title
+    monitor.setCursorPos(1, 1)
+    monitor.setTextColor(colors.blue)
+    monitor.write("Google Drive")
 
-    -- Display the shortened storage numbers below the bar
-    local storageText = formatNumber(usedStorage) .. " / " .. formatNumber(totalStorage)
+    -- Draw the item progress bar (y-position = 3)
+    drawProgressBar(usedItemStorage, totalItemStorage, monitor.getSize() - 2, 3)
+
+    -- Display the shortened item storage numbers below the item bar
+    local itemStorageText = formatNumber(usedItemStorage) .. " / " .. formatNumber(totalItemStorage)
     monitor.setCursorPos(1, 5)
     monitor.setTextColor(colors.green)
-    mf.writeOn(monitor, storageText, nil, 5, { anchorHor = "center" })
+    monitor.write(itemStorageText)
 
-    -- Display the free space centered
-    local freeText = "Free: " .. formatNumber(freeStorage)
-    monitor.setTextColor(colors.lightGray)
-    mf.writeOn(monitor, freeText, nil, 7, { anchorHor = "center" })
+    -- Draw the fluid progress bar (y-position = 7)
+    drawProgressBar(usedFluidStorage, totalFluidStorage, monitor.getSize() - 2, 7)
 
-    -- Check if free storage is less than 10,000 and display warning with sound loop
-    if freeStorage <= 10000 then
+    -- Display the shortened fluid storage numbers below the fluid bar
+    local fluidStorageText = formatNumber(usedFluidStorage) .. " / " .. formatNumber(totalFluidStorage)
+    monitor.setCursorPos(1, 9)
+    monitor.setTextColor(colors.cyan)
+    monitor.write(fluidStorageText)
+
+    -- Check if free storage is less than 10,000 for items or fluids
+    if freeItemStorage <= 10000 or freeFluidStorage <= 10000 then
         displayWarning()
         displayStorage() -- Re-display storage info when space is freed
     end
