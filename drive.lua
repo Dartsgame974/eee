@@ -70,7 +70,7 @@ local function displayStorageUsage(monitorLeft, monitorRight)
     local widthRight, heightRight = monitorRight.getSize()
 
     -- Draw the green vertical progress bar for item storage
-    drawVerticalBar(monitorLeft, usedItemStorage, totalItemStorage, widthLeft // 2, heightLeft, colors.green, 2)
+    drawVerticalBar(monitorLeft, usedItemStorage, totalItemStorage, widthLeft / 2, heightLeft, colors.green, 2)
     
     -- Draw the blue vertical progress bar for fluid storage
     drawVerticalBar(monitorRight, usedFluidStorage, totalFluidStorage, widthRight // 2, heightRight, colors.blue, 2)
