@@ -86,14 +86,14 @@ local function displayStorage()
     monitor.setTextColor(colors.lightGray)
     centerText(freeText, 7)
 
-    -- Check if storage is full and display warning with sound loop
-    if usedStorage >= totalStorage then
+    -- Check if free storage is less than 10,000 and display warning with sound loop
+    if freeStorage <= 10000 then
         monitor.clear()
         local flicker = true
         local startTime = os.clock()
         
         -- Loop the sound for 45 seconds
-        while usedStorage >= totalStorage do
+        while freeStorage <= 10000 do
             -- Play the sound in a loop while flickering text
             if os.clock() - startTime <= 45 then
                 aukit.play(aukit.stream.wav(io.lines("alert.wav", 48000)), speaker)
@@ -115,6 +115,7 @@ local function displayStorage()
             for _, item in pairs(rsBridge.listItems()) do
                 usedStorage = usedStorage + item.amount
             end
+            freeStorage = totalStorage - usedStorage
         end
         monitor.clear()
         displayStorage() -- Re-display storage info when space is freed
