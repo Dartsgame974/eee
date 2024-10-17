@@ -1,13 +1,18 @@
 -- Load AUKit for audio playback
 local aukit = require("aukit")
-local speaker = peripheral.find("speaker")
+local speaker = peripheral.find("speaker") -- Automatically finds the connected speaker
 local mf = require("morefonts") -- Load More Fonts library
 
--- Initialize peripherals and variables
-local monitorLeft = peripheral.wrap("monitor_left") -- Left monitor for item storage
-local monitorRight = peripheral.wrap("monitor_right") -- Right monitor for fluid storage
-local monitorAlert = peripheral.wrap("monitor_0") -- Central monitor for alert messages
-local rsBridge = peripheral.find("rsBridge")
+-- Find monitors automatically
+local monitorLeft = peripheral.find("monitor", function(name, mon) return mon.getSize() == (w, h) and w > h end) -- Assuming left is taller
+local monitorRight = peripheral.find("monitor", function(name, mon) return mon.getSize() == (w, h) and w > h end) -- Assuming right is taller
+local monitorAlert = peripheral.find("monitor", function(name, mon) return mon.getSize() == (w, h) and h >= w end) -- Assuming alert monitor is central
+
+-- Ensure all monitors were found, else display an error
+if not monitorLeft or not monitorRight or not monitorAlert then
+    print("Error: One or more monitors not found!")
+    return
+end
 
 -- Set monitor scales
 monitorLeft.setTextScale(1)
@@ -70,10 +75,10 @@ local function displayStorageUsage(monitorLeft, monitorRight)
     local widthRight, heightRight = monitorRight.getSize()
 
     -- Draw the green vertical progress bar for item storage
-    drawVerticalBar(monitorLeft, usedItemStorage, totalItemStorage, widthLeft / 2, heightLeft, colors.green, 2)
+    drawVerticalBar(monitorLeft, usedItemStorage, totalItemStorage, widthLeft // 2, heightLeft, colors.green, 2)
     
     -- Draw the blue vertical progress bar for fluid storage
-    drawVerticalBar(monitorRight, usedFluidStorage, totalFluidStorage, widthRight / 2, heightRight, colors.blue, 2)
+    drawVerticalBar(monitorRight, usedFluidStorage, totalFluidStorage, widthRight // 2, heightRight, colors.blue, 2)
 end
 
 -- Function to display alert messages on monitorAlert
