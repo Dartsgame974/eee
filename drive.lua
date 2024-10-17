@@ -81,34 +81,27 @@ local function displayStorage()
     monitor.setTextColor(colors.lightGray)
     centerText(freeText, 7)
 
-    -- Check if storage is full and display warning
-    if usedStorage >= totalStorage then
-        monitor.clear()
-        local flicker = true
-        while usedStorage >= totalStorage do
-            monitor.setCursorPos(1, h / 2)
-            if flicker then
-                monitor.setTextColor(colors.red)
-                centerText("STOCKAGE COMPLET!!!!", h // 2)
-            else
-                monitor.clearLine()
-            end
-            flicker = not flicker
-            sleep(0.5)
-            
-            -- Update storage status to break out of the loop if space is freed
-            usedStorage = 0
-            for _, item in pairs(rsBridge.listItems()) do
-                usedStorage = usedStorage + item.amount
-            end
+if usedStorage >= totalStorage then
+    monitor.clear()
+    local flicker = true
+    while usedStorage >= totalStorage do
+        -- Centered flickering full storage message
+        monitor.setCursorPos(1, math.floor(h / 2))
+        if flicker then
+            monitor.setTextColor(colors.red)
+            centerText("STOCKAGE COMPLET!!!!", math.floor(h / 2))
+        else
+            monitor.clearLine()
         end
-        monitor.clear()
-        displayStorage() -- Re-display storage info when space is freed
+        flicker = not flicker
+        sleep(0.5)
+        
+        -- Update storage status to break out of the loop if space is freed
+        usedStorage = 0
+        for _, item in pairs(rsBridge.listItems()) do
+            usedStorage = usedStorage + item.amount
+        end
     end
-end
-
--- Main loop to update the display
-while true do
-    displayStorage()
-    sleep(5) -- Update every 5 seconds
+    monitor.clear()
+    displayStorage() -- Re-display storage info when space is freed
 end
