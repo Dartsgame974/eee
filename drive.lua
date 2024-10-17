@@ -76,4 +76,53 @@ local function displayStorage()
 
     -- Get fluid storage information
     local totalFluidStorage = rsBridge.getMaxFluidDiskStorage()
-    local usedFluid
+    local usedFluidStorage = 0 -- FIXED typo here
+    for _, fluid in pairs(rsBridge.listFluids()) do
+        usedFluidStorage = usedFluidStorage + fluid.amount
+    end
+    local freeFluidStorage = totalFluidStorage - usedFluidStorage
+
+    -- If either item or fluid storage is full
+    if freeItemStorage <= 10000 or freeFluidStorage <= 10000 then
+        -- Play alert 3 times, then loop the signature sound
+        playAlert()
+        
+        -- Display full storage messages in a loop until space is freed
+        while freeItemStorage <= 10000 or freeFluidStorage <= 10000 do
+            -- Display "Fluid COMPLET" message if fluid storage is full
+            if freeFluidStorage <= 10000 then
+                displayMessage("FLUID COMPLET!!!!", usedFluidStorage, totalFluidStorage, colors.red)
+            end
+
+            -- Display "Stockage COMPLET" message if item storage is full
+            if freeItemStorage <= 10000 then
+                displayMessage("STOCKAGE COMPLET!!!!", usedItemStorage, totalItemStorage, colors.red)
+            end
+
+            -- Update storage values and check if space is freed
+            usedItemStorage = 0
+            for _, item in pairs(rsBridge.listItems()) do
+                usedItemStorage = usedItemStorage + item.amount
+            end
+            freeItemStorage = totalItemStorage - usedItemStorage
+
+            usedFluidStorage = 0
+            for _, fluid in pairs(rsBridge.listFluids()) do
+                usedFluidStorage = usedFluidStorage + fluid.amount
+            end
+            freeFluidStorage = totalFluidStorage - usedFluidStorage
+
+            sleep(1)
+        end
+
+        -- Once space is freed, stop the signature sound and reset
+        monitor.clear()
+        displayStorage() -- Call displayStorage again to reset the state
+    end
+end
+
+-- Main loop to update the display every 5 seconds
+while true do
+    displayStorage()
+    sleep(5) -- Update every 5 seconds
+end
