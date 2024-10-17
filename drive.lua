@@ -1,6 +1,10 @@
+-- Load AUKit for audio playback
+local aukit = require("aukit")
+local speaker = peripheral.find("speaker")
+
 -- Initialize peripherals and variables
-local monitor = peripheral.find("monitor") -- Assuming you have a monitor connected
-local rsBridge = peripheral.find("rsBridge") -- Assuming RS Bridge is correctly connected
+local monitor = peripheral.find("monitor")
+local rsBridge = peripheral.find("rsBridge")
 
 -- Set monitor scale and clear
 monitor.setTextScale(1.5)
@@ -81,27 +85,43 @@ local function displayStorage()
     monitor.setTextColor(colors.lightGray)
     centerText(freeText, 7)
 
-if usedStorage >= totalStorage then
-    monitor.clear()
-    local flicker = true
-    while usedStorage >= totalStorage do
-        -- Centered flickering full storage message
-        monitor.setCursorPos(1, math.floor(h / 2))
-        if flicker then
-            monitor.setTextColor(colors.red)
-            centerText("STOCKAGE COMPLET!!!!", math.floor(h / 2))
-        else
-            monitor.clearLine()
-        end
-        flicker = not flicker
-        sleep(0.5)
+    -- Check if storage is full and display warning with sound loop
+    if usedStorage >= totalStorage then
+        monitor.clear()
+        local flicker = true
+        local startTime = os.clock()
         
-        -- Update storage status to break out of the loop if space is freed
-        usedStorage = 0
-        for _, item in pairs(rsBridge.listItems()) do
-            usedStorage = usedStorage + item.amount
+        -- Loop the sound for 45 seconds
+        while usedStorage >= totalStorage do
+            -- Play the sound in a loop while flickering text
+            if os.clock() - startTime <= 45 then
+                aukit.play(aukit.stream.wav(io.lines("alert.wav", 48000)), speaker)
+            end
+
+            -- Centered flickering full storage message
+            monitor.setCursorPos(1, math.floor(h / 2))
+            if flicker then
+                monitor.setTextColor(colors.red)
+                centerText("STOCKAGE COMPLET!!!!", math.floor(h / 2))
+            else
+                monitor.clearLine()
+            end
+            flicker = not flicker
+            sleep(0.5)
+            
+            -- Update storage status to break out of the loop if space is freed
+            usedStorage = 0
+            for _, item in pairs(rsBridge.listItems()) do
+                usedStorage = usedStorage + item.amount
+            end
         end
+        monitor.clear()
+        displayStorage() -- Re-display storage info when space is freed
     end
-    monitor.clear()
-    displayStorage() -- Re-display storage info when space is freed
+end
+
+-- Main loop to update the display
+while true do
+    displayStorage()
+    sleep(5) -- Update every 5 seconds
 end
