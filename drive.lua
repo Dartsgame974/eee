@@ -1,12 +1,12 @@
 -- Load AUKit for audio playback
 local aukit = require("aukit")
-local speaker = peripheral.find("speaker") -- Automatically finds the connected speaker
+local speaker = peripheral.find("speaker") -- Automatically find the connected speaker
 local mf = require("morefonts") -- Load More Fonts library
 
 -- Find monitors automatically
-local monitorLeft = peripheral.find("monitor", function(name, mon) return mon.getSize() == (w, h) and w > h end) -- Assuming left is taller
-local monitorRight = peripheral.find("monitor", function(name, mon) return mon.getSize() == (w, h) and w > h end) -- Assuming right is taller
-local monitorAlert = peripheral.find("monitor", function(name, mon) return mon.getSize() == (w, h) and h >= w end) -- Assuming alert monitor is central
+local monitorLeft = peripheral.find("monitor") -- Automatically find the left monitor
+local monitorRight = peripheral.find("monitor") -- Automatically find the right monitor
+local monitorAlert = peripheral.find("monitor_0") -- Automatically find the central monitor for alerts
 
 -- Ensure all monitors were found, else display an error
 if not monitorLeft or not monitorRight or not monitorAlert then
