@@ -4,14 +4,17 @@ local speaker = peripheral.find("speaker")
 local mf = require("morefonts") -- Load More Fonts library
 
 -- Initialize peripherals and variables
-local monitor = peripheral.find("monitor")
+local monitorLeft = peripheral.wrap("monitor_left") -- Left monitor for item storage
+local monitorRight = peripheral.wrap("monitor_right") -- Right monitor for fluid storage
+local monitorAlert = peripheral.wrap("monitor_0") -- Central monitor for alert messages
 local rsBridge = peripheral.find("rsBridge")
 
--- Set monitor scale and clear
-monitor.setTextScale(1)
-monitor.clear()
+-- Set monitor scales
+monitorLeft.setTextScale(1)
+monitorRight.setTextScale(1)
+monitorAlert.setTextScale(1)
 
--- Format large numbers into K (thousand), M (million), etc.
+-- Function to format numbers into K (thousand), M (million), etc.
 local function formatNumber(num)
     if num >= 1000000 then
         return string.format("%.1fM", num / 1000000)
@@ -22,57 +25,34 @@ local function formatNumber(num)
     end
 end
 
--- Function to display "FLUID COMPLET" or "STOCKAGE COMPLET" and the storage values
-local function displayMessage(message, valueUsed, valueTotal, color)
-    monitor.clear() -- Clear the screen once before showing messages
-    monitor.setTextColor(color)
+-- Function to draw a vertical progress bar
+local function drawVerticalBar(monitor, used, total, width, height, barColor, yPos)
+    local ratio = used / total
+    local filledHeight = math.floor(ratio * height)
 
-    -- Display the message
-    mf.writeOn(monitor, message, nil, 5, {
-        font = "fonts/PublicPixel",
-        scale = 0.5,
-        anchorHor = "center",
-    })
-    
-    sleep(2) -- Hold the message for 2 seconds
-    
-    -- Display storage values
-    local storageText = formatNumber(valueUsed) .. " / " .. formatNumber(valueTotal)
-    monitor.setCursorPos(1, 7)  -- Ensure this displays in a new line
-    mf.writeOn(monitor, storageText, nil, 7, {
-        font = "fonts/PublicPixel",
-        scale = 0.5,
-        anchorHor = "center",
-    })
-    
-    sleep(2) -- Hold the storage value for 2 seconds
-end
-
--- Function to play the alert sound 3 times
-local function playAlert()
-    for i = 1, 3 do
-        aukit.play(aukit.stream.wav(io.lines("alert.wav", 48000)), speaker)
-        sleep(2) -- Pause between plays to ensure it's audible
+    -- Draw the vertical progress bar
+    for y = 1, height do
+        monitor.setCursorPos(width, yPos + height - y)
+        if y <= filledHeight then
+            monitor.setBackgroundColor(barColor) -- Filled bar section
+        else
+            monitor.setBackgroundColor(colors.gray) -- Empty bar section
+        end
+        monitor.write(" ") -- Writing a "square" for each vertical section
     end
+
+    -- Reset background color
+    monitor.setBackgroundColor(colors.black)
 end
 
--- Function to loop the signature sound
-local function playSignatureLoop()
-    while true do
-        aukit.play(aukit.stream.wav(io.lines("signature.wav", 48000)), speaker)
-        sleep(1) -- Repeat after a 1-second pause
-    end
-end
-
--- Main function to display storage information and handle full storage conditions
-local function displayStorage()
+-- Function to display storage usage on the vertical bars
+local function displayStorageUsage(monitorLeft, monitorRight)
     -- Get item storage information
     local totalItemStorage = rsBridge.getMaxItemDiskStorage()
     local usedItemStorage = 0
     for _, item in pairs(rsBridge.listItems()) do
         usedItemStorage = usedItemStorage + item.amount
     end
-    local freeItemStorage = totalItemStorage - usedItemStorage
 
     -- Get fluid storage information
     local totalFluidStorage = rsBridge.getMaxFluidDiskStorage()
@@ -80,49 +60,114 @@ local function displayStorage()
     for _, fluid in pairs(rsBridge.listFluids()) do
         usedFluidStorage = usedFluidStorage + fluid.amount
     end
+
+    -- Clear monitors
+    monitorLeft.clear()
+    monitorRight.clear()
+
+    -- Display vertical bars on left (item storage) and right (fluid storage)
+    local widthLeft, heightLeft = monitorLeft.getSize()
+    local widthRight, heightRight = monitorRight.getSize()
+
+    -- Draw the green vertical progress bar for item storage
+    drawVerticalBar(monitorLeft, usedItemStorage, totalItemStorage, widthLeft // 2, heightLeft, colors.green, 2)
+    
+    -- Draw the blue vertical progress bar for fluid storage
+    drawVerticalBar(monitorRight, usedFluidStorage, totalFluidStorage, widthRight // 2, heightRight, colors.blue, 2)
+end
+
+-- Function to display alert messages on monitorAlert
+local function displayAlert()
+    -- Get storage status
+    local totalItemStorage = rsBridge.getMaxItemDiskStorage()
+    local usedItemStorage = 0
+    for _, item in pairs(rsBridge.listItems()) do
+        usedItemStorage = usedItemStorage + item.amount
+    end
+    local freeItemStorage = totalItemStorage - usedItemStorage
+
+    local totalFluidStorage = rsBridge.getMaxFluidDiskStorage()
+    local usedFluidStorage = 0
+    for _, fluid in pairs(rsBridge.listFluids()) do
+        usedFluidStorage = usedFluidStorage + fluid.amount
+    end
     local freeFluidStorage = totalFluidStorage - usedFluidStorage
 
-    -- If either item or fluid storage is full
-    if freeItemStorage <= 10000 or freeFluidStorage <= 10000 then
-        -- Play alert 3 times, then loop the signature sound
-        playAlert()
+    -- Clear monitorAlert
+    monitorAlert.clear()
+
+    -- Determine which message to display
+    if freeItemStorage <= 10000 and freeFluidStorage <= 10000 then
+        -- Display both alerts (items and fluids)
+        monitorAlert.setCursorPos(1, 2)
+        monitorAlert.setTextColor(colors.red)
+        mf.writeOn(monitorAlert, "STOCKAGE COMPLET!!!", nil, 2, {
+            font = "fonts/PublicPixel",
+            scale = 0.5,
+            anchorHor = "center",
+        })
+        sleep(2)
+        monitorAlert.clear()
+        mf.writeOn(monitorAlert, "FLUID COMPLET!!!", nil, 2, {
+            font = "fonts/PublicPixel",
+            scale = 0.5,
+            anchorHor = "center",
+        })
+        sleep(2)
+    elseif freeItemStorage <= 10000 then
+        -- Display only item storage alert
+        monitorAlert.setCursorPos(1, 2)
+        monitorAlert.setTextColor(colors.red)
+        mf.writeOn(monitorAlert, "STOCKAGE COMPLET!!!", nil, 2, {
+            font = "fonts/PublicPixel",
+            scale = 0.5,
+            anchorHor = "center",
+        })
+        sleep(2)
+    elseif freeFluidStorage <= 10000 then
+        -- Display only fluid storage alert
+        monitorAlert.setCursorPos(1, 2)
+        monitorAlert.setTextColor(colors.red)
+        mf.writeOn(monitorAlert, "FLUID COMPLET!!!", nil, 2, {
+            font = "fonts/PublicPixel",
+            scale = 0.5,
+            anchorHor = "center",
+        })
+        sleep(2)
+    end
+end
+
+-- Function to monitor and update displays
+local function monitorStorage()
+    while true do
+        -- Display vertical storage bars on left and right monitors
+        displayStorageUsage(monitorLeft, monitorRight)
         
-        -- Display full storage messages in a loop until space is freed
-        while freeItemStorage <= 10000 or freeFluidStorage <= 10000 do
-            -- Display "Fluid COMPLET" message if fluid storage is full
-            if freeFluidStorage <= 10000 then
-                displayMessage("FLUID COMPLET!!!!", usedFluidStorage, totalFluidStorage, colors.red)
-            end
+        -- Check if we need to display alert on monitor_0
+        local totalItemStorage = rsBridge.getMaxItemDiskStorage()
+        local usedItemStorage = 0
+        for _, item in pairs(rsBridge.listItems()) do
+            usedItemStorage = usedItemStorage + item.amount
+        end
+        local freeItemStorage = totalItemStorage - usedItemStorage
 
-            -- Display "Stockage COMPLET" message if item storage is full
-            if freeItemStorage <= 10000 then
-                displayMessage("STOCKAGE COMPLET!!!!", usedItemStorage, totalItemStorage, colors.red)
-            end
+        local totalFluidStorage = rsBridge.getMaxFluidDiskStorage()
+        local usedFluidStorage = 0
+        for _, fluid in pairs(rsBridge.listFluids()) do
+            usedFluidStorage = usedFluidStorage + fluid.amount
+        end
+        local freeFluidStorage = totalFluidStorage - usedFluidStorage
 
-            -- Update storage values and check if space is freed
-            usedItemStorage = 0
-            for _, item in pairs(rsBridge.listItems()) do
-                usedItemStorage = usedItemStorage + item.amount
-            end
-            freeItemStorage = totalItemStorage - usedItemStorage
-
-            usedFluidStorage = 0
-            for _, fluid in pairs(rsBridge.listFluids()) do
-                usedFluidStorage = usedFluidStorage + fluid.amount
-            end
-            freeFluidStorage = totalFluidStorage - usedFluidStorage
-
-            sleep(1)
+        if freeItemStorage <= 10000 or freeFluidStorage <= 10000 then
+            -- Play alert sound and display alerts
+            aukit.play(aukit.stream.wav(io.lines("alert.wav", 48000)), speaker)
+            displayAlert()
         end
 
-        -- Once space is freed, stop the signature sound and reset
-        monitor.clear()
-        displayStorage()
+        -- Update every 5 seconds
+        sleep(5)
     end
-end -- <-- Properly close the `displayStorage` function here.
-
--- Main loop to update the display every 5 seconds
-while true do
-    displayStorage()
-    sleep(5) -- Update every 5 seconds
 end
+
+-- Run the monitoring function
+monitorStorage()
