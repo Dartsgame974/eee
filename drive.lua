@@ -45,29 +45,32 @@ local function drawProgressBar(used, total, width)
     monitor.setBackgroundColor(colors.black)
 end
 
--- Function to display a large centered title using More Fonts
+-- Function to display a large centered title using More Fonts (with size 0.5)
 local function displayTitle(text)
     monitor.setTextColor(colors.blue)
     mf.writeOn(monitor, text, nil, 1, {
         font = "fonts/PublicPixel", -- Choose a font here
-        scale = 2, -- Make it larger
+        scale = 0.5, -- Set scale to 0.5
         anchorHor = "center",
     })
 end
 
--- Function to display the stockage complet warning
+-- Function to display the stockage complet warning (with sound for 30 seconds)
 local function displayWarning()
     local w, h = monitor.getSize()
 
-    -- Play the warning sound for 45 seconds
-    local startTime = os.clock()
-    while os.clock() - startTime <= 45 do
-        -- Flickering text in the center
+    -- Start the warning sound for 30 seconds
+    local soundStartTime = os.clock()
+
+    -- Display flickering text for 30 seconds, sound stops but text remains
+    local flickerStartTime = os.clock()
+    while os.clock() - flickerStartTime <= 30 do
+        -- Flickering "STOCKAGE COMPLET!!!!"
         monitor.clear()
         monitor.setTextColor(colors.red)
         mf.writeOn(monitor, "STOCKAGE COMPLET!!!!", nil, math.floor(h / 2), {
             font = "fonts/PublicPixel", -- Choose a bold font
-            scale = 2,
+            scale = 0.5, -- Set scale to 0.5
             anchorHor = "center",
         })
 
@@ -75,8 +78,24 @@ local function displayWarning()
         monitor.clear()
         sleep(0.5)
 
-        -- Play alert.wav in the background
-        aukit.play(aukit.stream.wav(io.lines("alert.wav", 48000)), speaker)
+        -- Play alert.wav for the first 30 seconds
+        if os.clock() - soundStartTime <= 30 then
+            aukit.play(aukit.stream.wav(io.lines("alert.wav", 48000)), speaker)
+        end
+    end
+
+    -- Continue to display the warning after 30 seconds without the sound
+    while true do
+        monitor.clear()
+        monitor.setTextColor(colors.red)
+        mf.writeOn(monitor, "STOCKAGE COMPLET!!!!", nil, math.floor(h / 2), {
+            font = "fonts/PublicPixel",
+            scale = 0.5,
+            anchorHor = "center",
+        })
+        sleep(0.5)
+        monitor.clear()
+        sleep(0.5)
     end
 end
 
