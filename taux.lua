@@ -4,7 +4,7 @@ local rsBridge = peripheral.find("rsBridge")
 local previousItemCount = 0
 
 -- Set monitor scale and clear
-monitor.setTextScale(2)  -- Large text size
+monitor.setTextScale(5)  -- Very large text
 monitor.clear()
 
 -- Format large numbers into K (thousand), M (million), etc.
@@ -41,23 +41,25 @@ local function displayItemsAddedPerMinute()
     -- Format the number
     local formattedItemsAdded = formatNumber(itemsAdded)
 
-    -- Choose the color based on the number of items added
+    -- Choose the background color based on the number of items added
     if itemsAdded < 1000 then
-        monitor.setTextColor(colors.green)
+        monitor.setBackgroundColor(colors.green)
     elseif itemsAdded < 10000 then
-        monitor.setTextColor(colors.yellow)
+        monitor.setBackgroundColor(colors.yellow)
     elseif itemsAdded < 100000 then
-        monitor.setTextColor(colors.orange)
+        monitor.setBackgroundColor(colors.orange)
     else
-        monitor.setTextColor(colors.red)
+        monitor.setBackgroundColor(colors.red)
     end
 
-    -- Clear the monitor
+    -- Set text color to white
+    monitor.setTextColor(colors.white)
+
+    -- Clear the monitor with the selected background color
     monitor.clear()
 
-    -- Display the text
-    centerText("Items Added per Minute", 2)
-    centerText(formattedItemsAdded, 4)
+    -- Display the centered number
+    centerText(formattedItemsAdded, math.floor(monitor.getSize() / 2))
 end
 
 -- Main loop to update the display every minute
